@@ -1,0 +1,20 @@
+{
+  "name": "weather",
+  "version": "1.0.0",
+  "description": "",
+  "main": "main.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/strhrt/weather-app.git"
+  },
+  "author": "strhrt - diana mamedova",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/strhrt/weather-app/issues"
+  },
+  "homepage": "https://github.com/strhrt/weather-app#readme"
+}
