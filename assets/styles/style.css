@@ -1,0 +1,81 @@
+* {
+  margin: 0;
+  padding: 0;
+  font-family: "Open Sans", sans-serif;
+}
+:root {
+  --min-container-width: 910px;
+  --container-background: rgba(0, 0, 0, 0.65);
+  --container-border-radius: 20px;
+}
+.wrapper {
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: center;
+  align-items: center;
+}
+.content {
+  min-width: var(--min-container-width);
+}
+.error {
+  position: absolute;
+  top: 51px;
+  left: 50%;
+  transform: translate(-50%);
+  height: 61px;
+  width: 290px;
+  border-radius: var(--container-border-radius);
+  background-color: #b4362e;
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: center;
+  justify-content: center;
+}
+.error__message {
+  font-size: 18px;
+  line-height: 21px;
+  color: #fff;
+}
+.search {
+  min-width: var(--min-container-width);
+  background-color: var(--container-background);
+  padding: 25px 40px;
+  display: flex;
+  align-items: center;
+  margin-bottom: 76px;
+  border-radius: var(--container-border-radius);
+}
+.search__input {
+  background: none;
+  border: none;
+  width: 100%;
+  height: 28px;
+  padding-left: 10px;
+  font-size: 24px;
+  line-height: 28px;
+
+  color: #ffffff;
+}
+.search__settings-icon {
+  width: 28px;
+  height: 28px;
+  margin-left: 40px;
+}
+.settings {
+  position: absolute;
+  border-radius: var(--container-border-radius);
+  background-color: var(--container-background);
+  max-height: 97px;
+  max-width: 214px;
+  width: 214px;
+  height: 97px; /*delete later*/
+  padding: 20px 75px 20px 20px;
+}
+.info {
+  height: 514px;
+  min-width: var(--min-container-width);
+  background-color: var(--container-background);
+  border-radius: var(--container-border-radius);
+}
