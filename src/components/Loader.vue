@@ -13,24 +13,22 @@ export default {
 }
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
+$border-color: white;
+
 .lds-ring {
-  display: inline-block;
-  position: relative;
-  width: 80px;
-  height: 80px;
+  width: 28px;
+  height: 28px;
 }
 .lds-ring div {
   box-sizing: border-box;
-  display: block;
   position: absolute;
-  width: 64px;
-  height: 64px;
-  margin: 8px;
-  border: 8px solid red;
+  width: 24px;
+  height: 24px;
+  border: 3px solid $border-color;
   border-radius: 50%;
   animation: lds-ring 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite;
-  border-color: red transparent transparent transparent;
+  border-color: $border-color transparent transparent transparent;
 }
 .lds-ring div:nth-child(1) {
   animation-delay: -0.45s;
