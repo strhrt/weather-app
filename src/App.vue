@@ -5,7 +5,9 @@
         <p class="error__message">Oops... something went wrong</p>
       </div>
       <div class="search">
-        <input type="text" class="search__input" :placeholder="defaultCity" />
+        <input type="text" class="search__input" :placeholder="defaultCity" v-model.trim="city" />
+        <Loader />
+
         <div class="search__settinds--icon" @click="isSettingsOpen = !isSettingsOpen">
           <img src="@/assets/icons/settings.svg" alt="" />
         </div>
@@ -26,17 +28,17 @@
         <h6 class="info__date-time">{{ localDateTimeUTC }}</h6>
         <div class="info__weather">
           <p class="info__weather-temperature">
-            {{ floorDegrees(weatherInfo.temperature) }} <span class="info__weather-scale"> &deg;C</span>
+            {{ floorDegrees(weatherInfo.temperature) }}<span class="info__weather-scale">&deg;C</span>
           </p>
 
           <img src="" alt="" class="info__weather-icon" />
 
           <div class="info__weather-description">
-            {{ weatherInfo.description }}
+            {{ capitalazedWeatherDescription }}
             <p class="info__weather-feels-like">
               Feels like
-              <span class="info__weather-feels-like-temperature"> {{ floorDegrees(weatherInfo.feelsLike) }} </span>
-              <span class="info__weather-feels-like-scale"> &deg;F</span>
+              <span class="info__weather-feels-like-temperature"> {{ floorDegrees(weatherInfo.feelsLike) }}</span>
+              <span class="info__weather-feels-like-scale">&deg;F</span>
             </p>
           </div>
         </div>
@@ -71,34 +73,54 @@
 import getWeatherInfo from '@/services/weather/index.js'
 export default {
   name: 'App',
+  components: {
+    Loader: () => import('./components/Loader.vue')
+  },
   data() {
     return {
       isSettingsOpen: false,
       weatherInfo: null,
+      city: '',
+      loading: false,
       // temp
       defaultCity: 'moscow',
-      defaultLang: 'en'
+      defaultLang: 'ru'
       // TODO: add mesurements map
     }
   },
   computed: {
+    /** преобразование кода страны в её название */
     countryName: (vm) => new Intl.DisplayNames([vm.defaultLang], { type: 'region' }).of(vm.weatherInfo.countryCode),
     localDateTimeUTC: (vm) => new Date(Date.now() + vm.weatherInfo.timezone * 1000).toUTCString(),
-    measurementDateTime: (vm) => new Date(vm.weatherInfo.measurementDateTime * 1000).toLocaleString()
+    measurementDateTime: (vm) => new Date(vm.weatherInfo.measurementDateTime * 1000).toLocaleString(),
+    capitalazedWeatherDescription: (vm) =>
+      vm.weatherInfo.description.charAt(0).toUpperCase() + vm.weatherInfo.description.slice(1)
+  },
+  watch: {
+    city(newCity, oldCity) {
+      if (newCity === oldCity) return
+      else
+        setTimeout(async () => {
+          await this.getWeather(newCity)
+        }, 500)
+    }
   },
   async mounted() {
-    this.weatherInfo = await getWeatherInfo(this.defaultCity, this.defaultLang)
+    await this.getWeather(this.defaultCity)
   },
   methods: {
-    /** get sunrise or sunset time in seconds */
+    async getWeather(city) {
+      console.log(this.defaultLang)
+      this.weatherInfo = await getWeatherInfo(city, this.defaultLang)
+    },
+    /** преобразование времени в формат hh:mm */
     getTimeFromUTC(timeInSeconds) {
       const utcTime = new Date((timeInSeconds + this.weatherInfo.timezone) * 1000)
       // TODO: fix when minutes less than 10
       return utcTime.getUTCHours() + ':' + utcTime.getUTCMinutes()
     },
-    floorDegrees(degree) {
-      return Math.floor(degree)
-    }
+    floorDegrees: (degree) => Math.floor(degree)
+
     // TODO: add map for icons
     // getIconByIconId(iconId) {}
   }
