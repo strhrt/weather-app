@@ -5,7 +5,7 @@ import api from '@/services/api/index.js'
 export default async function getWeatherInfo(city, lang, measurment) {
   // TODO: add to request later
   console.log(lang)
-  const responseObj = await weatherRequest(city, measurment)
+  const responseObj = await weatherRequest(city, lang, measurment)
   return formatWeatherInfo(responseObj, measurment)
 }
 
@@ -15,10 +15,10 @@ export default async function getWeatherInfo(city, lang, measurment) {
  * @param {string} measurment система измерений metric (default) - °C , imperial - °F, standart - °K
  * @returns {object} объект с информацией о погоде
  */
-async function weatherRequest(cityName, measurment = 'metric') {
+async function weatherRequest(cityName, lang = 'ru', measurment = 'metric') {
   if (cityName.trim() === '') return
 
-  const url = `https://api.openweathermap.org/data/2.5/weather?q=${cityName}&appid=${OPEN_WEATHER_API_KEY}&units=${measurment}`
+  const url = `https://api.openweathermap.org/data/2.5/weather?q=${cityName}&appid=${OPEN_WEATHER_API_KEY}&units=${measurment}&lang=${lang}`
 
   return await api(url, 'GET')
 }
