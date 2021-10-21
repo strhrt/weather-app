@@ -5,10 +5,14 @@
         <p class="error__message">Oops... something went wrong</p>
       </div>
       <div class="search">
-        <input type="text" class="search__input" placeholder="Moscow" />
-        <div class="search__settinds--icon"><img src="@/assets/icons/settings.svg" alt="" /></div>
+        <input type="text" class="search__input" :placeholder="defaultCity" v-model.trim="city" />
+        <Loader />
+
+        <div class="search__settinds--icon" @click="isSettingsOpen = !isSettingsOpen">
+          <img src="@/assets/icons/settings.svg" alt="" />
+        </div>
       </div>
-      <div class="settings">
+      <div v-if="isSettingsOpen" class="settings">
         <div class="settings__scale">
           <input type="checkbox" id="toggle-button" class="toggle-button" />
           <label for="toggle-button"> Fahrenheit </label>
@@ -18,54 +22,108 @@
           <option value="en">en</option>
         </select>
       </div>
-      <div class="info">
-        <h1 class="info__city">Moscow</h1>
-        <h5 class="info__country">Russia</h5>
-        <h6 class="info__date-time">"Wed, 25 Aug 2021 14:52:32 GMT"</h6>
+      <div v-if="weatherInfo != null" class="info">
+        <h1 class="info__city">{{ weatherInfo.cityName }}</h1>
+        <h5 class="info__country">{{ countryName }}</h5>
+        <h6 class="info__date-time">{{ localDateTimeUTC }}</h6>
         <div class="info__weather">
-          <p class="info__weather-temperature">+10 <span class="info__weather-scale"> &deg;C</span></p>
+          <p class="info__weather-temperature">
+            {{ floorDegrees(weatherInfo.temperature) }}<span class="info__weather-scale">&deg;C</span>
+          </p>
 
           <img src="" alt="" class="info__weather-icon" />
 
           <div class="info__weather-description">
-            rainy
+            {{ capitalazedWeatherDescription }}
             <p class="info__weather-feels-like">
               Feels like
-              <span class="info__weather-feels-like-temperature"> 15</span>
-              <span class="info__weather-feels-like-scale"> &deg;F</span>
+              <span class="info__weather-feels-like-temperature"> {{ floorDegrees(weatherInfo.feelsLike) }}</span>
+              <span class="info__weather-feels-like-scale">&deg;F</span>
             </p>
           </div>
         </div>
         <div class="info__additional">
           <div class="info__additional-wind">
             <img src="@/assets/icons/wind.svg" alt="wind icon" class="info__additional-wind-icon" />
-            <p class="info-additional-wind-text">1.3 m/s</p>
+            <p class="info-additional-wind-text">{{ weatherInfo.windSpeed }} m/s</p>
           </div>
           <div class="info__additional-humidity">
             <img src="@/assets/icons/humidity.svg" alt="humidity icon" class="info__additional-humidity-icon" />
-            <p class="info__additional-humidity-text">40%</p>
+            <p class="info__additional-humidity-text">{{ weatherInfo.humidity }}%</p>
           </div>
         </div>
         <div class="info__separator"></div>
         <div class="info__day">
           <div class="info__day-sunrise">
             <img class="info__day-sunrise-icon" src="@/assets/icons/sunrise.svg" alt="sunrise icon" />
-            <div class="info__day-sunrise-text">8.44</div>
+            <div class="info__day-sunrise-text">{{ getTimeFromUTC(weatherInfo.sunriseTime) }}</div>
           </div>
           <div class="info__day-sunset">
             <img class="info__day-sunset-icon" src="@/assets/icons/sunset.svg" alt="sunset icon" />
-            <div class="info__day-sunset-text">8.44</div>
+            <div class="info__day-sunset-text">{{ getTimeFromUTC(weatherInfo.sunsetTime) }}</div>
           </div>
         </div>
+        <div class="info__measurement-date-time">{{ measurementDateTime }}</div>
       </div>
     </div>
   </div>
 </template>
 
 <script>
+import getWeatherInfo from '@/services/weather/index.js'
 export default {
   name: 'App',
-  components: {}
+  components: {
+    Loader: () => import('./components/Loader.vue')
+  },
+  data() {
+    return {
+      isSettingsOpen: false,
+      weatherInfo: null,
+      city: '',
+      loading: false,
+      // temp
+      defaultCity: 'moscow',
+      defaultLang: 'ru'
+      // TODO: add mesurements map
+    }
+  },
+  computed: {
+    /** преобразование кода страны в её название */
+    countryName: (vm) => new Intl.DisplayNames([vm.defaultLang], { type: 'region' }).of(vm.weatherInfo.countryCode),
+    localDateTimeUTC: (vm) => new Date(Date.now() + vm.weatherInfo.timezone * 1000).toUTCString(),
+    measurementDateTime: (vm) => new Date(vm.weatherInfo.measurementDateTime * 1000).toLocaleString(),
+    capitalazedWeatherDescription: (vm) =>
+      vm.weatherInfo.description.charAt(0).toUpperCase() + vm.weatherInfo.description.slice(1)
+  },
+  watch: {
+    city(newCity, oldCity) {
+      if (newCity === oldCity) return
+      else
+        setTimeout(async () => {
+          await this.getWeather(newCity)
+        }, 500)
+    }
+  },
+  async mounted() {
+    await this.getWeather(this.defaultCity)
+  },
+  methods: {
+    async getWeather(city) {
+      console.log(this.defaultLang)
+      this.weatherInfo = await getWeatherInfo(city, this.defaultLang)
+    },
+    /** преобразование времени в формат hh:mm */
+    getTimeFromUTC(timeInSeconds) {
+      const utcTime = new Date((timeInSeconds + this.weatherInfo.timezone) * 1000)
+      // TODO: fix when minutes less than 10
+      return utcTime.getUTCHours() + ':' + utcTime.getUTCMinutes()
+    },
+    floorDegrees: (degree) => Math.floor(degree)
+
+    // TODO: add map for icons
+    // getIconByIconId(iconId) {}
+  }
 }
 </script>
 
@@ -284,6 +342,9 @@ $container-border-radius: 20px;
     img {
       margin-right: 20px;
     }
+  }
+  &__measurement-date-time {
+    text-align: right;
   }
 }
 </style>
