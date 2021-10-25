@@ -6,15 +6,13 @@
       </div>
       <div class="search">
         <input type="text" class="search__input" :placeholder="defaultCity" v-model.trim="city" />
-        <Loader />
+        <Loader v-if="loading" />
 
-        <div class="search__settinds--icon" @click="isSettingsOpen = !isSettingsOpen">
-          <img src="@/assets/icons/settings.svg" alt="" />
-        </div>
+        <img id="settings-btn" class="search__settings--icon" src="@/assets/icons/settings.svg" alt="" />
       </div>
       <div v-if="isSettingsOpen" class="settings">
         <div class="settings__scale">
-          <input type="checkbox" id="toggle-button" class="toggle-button" />
+          <input v-model="isFahrenheit" type="checkbox" id="toggle-button" class="toggle-button" />
           <label for="toggle-button"> Fahrenheit </label>
         </div>
         <select name="lang" id="lang" class="settings__lang">
@@ -28,24 +26,25 @@
         <h6 class="info__date-time">{{ localDateTimeUTC }}</h6>
         <div class="info__weather">
           <p class="info__weather-temperature">
-            {{ floorDegrees(weatherInfo.temperature) }}<span class="info__weather-scale">&deg;C</span>
+            {{ floorDegrees(weatherInfo.temperature)
+            }}<span class="info__weather-scale">&deg;{{ measurementScale.temperature }}</span>
           </p>
 
-          <img src="" alt="" class="info__weather-icon" />
+          <img :src="getIconByIconId(weatherInfo.iconId)" :alt="weatherInfo.description" class="info__weather-icon" />
 
           <div class="info__weather-description">
             {{ capitalazedWeatherDescription }}
             <p class="info__weather-feels-like">
               Feels like
               <span class="info__weather-feels-like-temperature"> {{ floorDegrees(weatherInfo.feelsLike) }}</span>
-              <span class="info__weather-feels-like-scale">&deg;F</span>
+              <span class="info__weather-feels-like-scale">&deg;{{ measurementScale.temperature }}</span>
             </p>
           </div>
         </div>
         <div class="info__additional">
           <div class="info__additional-wind">
             <img src="@/assets/icons/wind.svg" alt="wind icon" class="info__additional-wind-icon" />
-            <p class="info-additional-wind-text">{{ weatherInfo.windSpeed }} m/s</p>
+            <p class="info-additional-wind-text">{{ weatherInfo.windSpeed }} {{ measurementScale.windSpeed }}</p>
           </div>
           <div class="info__additional-humidity">
             <img src="@/assets/icons/humidity.svg" alt="humidity icon" class="info__additional-humidity-icon" />
@@ -71,6 +70,33 @@
 
 <script>
 import getWeatherInfo from '@/services/weather/index.js'
+
+const iconsMap = new Map([
+  ['01d', 'clear_sky'],
+  ['02d', 'few_clouds'],
+  ['03d', 'scattered_clouds'],
+  ['04d', 'broken_clouds'],
+  ['09d', 'shower_rain'],
+  ['10d', 'rain'],
+  ['11d', 'thunderstorm'],
+  ['13d', 'snow'],
+  ['50d', 'mist'],
+  // night icons
+  ['01n', 'clear_sky_night'],
+  ['02n', 'few_clouds_night'],
+  ['03n', 'scattered_clouds'],
+  ['04n', 'broken_clouds'],
+  ['09n', 'shower_rain_night'],
+  ['10n', 'rain'],
+  ['11n', 'thunderstorm'],
+  ['13n', 'snow'],
+  ['50n', 'mist']
+])
+// TODO: РАЗДЕЛИТЬ НА КОМПОНЕНТЫ
+// TODO: ДОБАВИТЬ ЛОАДЕР ДЛЯ ТЕМПЕРАТУРЫ, ЧТОБЫ СРАБАТЫВАЛ ПРИ ИЗМЕНЕНИИ ШКАЛЫ
+// TODO: ДОБАВИТЬ РАЗМЕРЫ ЛОАДЕРА
+// TODO: ДОБАВИТЬ ПАРУ ЯЗЫКОВ, СОЗДАТЬ МАПУ: {id: 'ru', label:'Русский'} и тд
+
 export default {
   name: 'App',
   components: {
@@ -82,6 +108,7 @@ export default {
       weatherInfo: null,
       city: '',
       loading: false,
+      isFahrenheit: false,
       // temp
       defaultCity: 'moscow',
       defaultLang: 'ru'
@@ -89,6 +116,11 @@ export default {
     }
   },
   computed: {
+    measurement: (vm) => (vm.isFahrenheit ? 'imperial' : 'metric'),
+    measurementScale: (vm) => ({
+      temperature: vm.isFahrenheit ? 'F' : 'C',
+      windSpeed: vm.isFahrenheit ? 'meter/sec' : 'miles/hours'
+    }),
     /** преобразование кода страны в её название */
     countryName: (vm) => new Intl.DisplayNames([vm.defaultLang], { type: 'region' }).of(vm.weatherInfo.countryCode),
     localDateTimeUTC: (vm) => new Date(Date.now() + vm.weatherInfo.timezone * 1000).toUTCString(),
@@ -102,27 +134,52 @@ export default {
       else
         setTimeout(async () => {
           await this.getWeather(newCity)
-        }, 500)
+        }, 1500)
+    },
+    async isFahrenheit() {
+      await this.getWeather(this.defaultCity, this.defaultLang, this.measurement)
     }
   },
   async mounted() {
+    document.addEventListener('click', this.closeSettings)
     await this.getWeather(this.defaultCity)
   },
   methods: {
     async getWeather(city) {
-      console.log(this.defaultLang)
-      this.weatherInfo = await getWeatherInfo(city, this.defaultLang)
+      console.log(city)
+      this.loading = true
+      this.weatherInfo = await getWeatherInfo(city, this.defaultLang, this.measurement)
+      this.loading = false
     },
     /** преобразование времени в формат hh:mm */
     getTimeFromUTC(timeInSeconds) {
       const utcTime = new Date((timeInSeconds + this.weatherInfo.timezone) * 1000)
-      // TODO: fix when minutes less than 10
-      return utcTime.getUTCHours() + ':' + utcTime.getUTCMinutes()
+      let minutes = utcTime.getUTCMinutes()
+      if (minutes < 10) {
+        minutes = '0' + minutes
+      }
+      return utcTime.getUTCHours() + ':' + minutes
     },
-    floorDegrees: (degree) => Math.floor(degree)
+    floorDegrees: (degree) => Math.floor(degree),
+    closeSettings({ target, path }) {
+      /** проверяем находится ли элемент в блоке настроек  */
+      if (path.some((el) => el.className === 'settings')) return
+
+      /** если настройки закрыты и клик по любой области, то выходим из функции */
+      if (!this.isSettingsOpen && target.id !== 'settings-btn') return
+
+      if (target.id === 'settings-btn') {
+        this.isSettingsOpen = true
+      } else {
+        this.isSettingsOpen = false
+      }
+    },
 
     // TODO: add map for icons
-    // getIconByIconId(iconId) {}
+    getIconByIconId(iconId) {
+      const iconName = iconsMap.get(iconId)
+      return require(`@/assets/icons/conditions/${iconName}.svg`)
+    }
   }
 }
 </script>
@@ -178,6 +235,7 @@ $container-border-radius: 20px;
   align-items: center;
   margin-bottom: 76px;
   &__input {
+    // todo: delete focus border
     background: none;
     border: none;
     width: 100%;
@@ -185,13 +243,16 @@ $container-border-radius: 20px;
     padding-left: 10px;
     font-size: 24px;
     line-height: 28px;
-
-    color: #ffffff;
+    color: #fff;
+    :focus-visible {
+      border: none !important;
+    }
   }
   &__settings--icon {
     width: 28px;
     height: 28px;
     margin-left: 40px;
+    cursor: pointer;
   }
 }
 
@@ -199,7 +260,7 @@ $container-border-radius: 20px;
   position: absolute;
   top: 90px;
   right: 0px;
-  background-color: $container-background;
+  background-color: #000;
   border-radius: $container-border-radius;
   padding: 20px;
   font-size: 18px;
@@ -244,6 +305,10 @@ $container-border-radius: 20px;
     height: 26px;
     border-radius: 30px;
     width: 50px;
+    color: #000;
+    option {
+      color: #000;
+    }
   }
 }
 .info {
